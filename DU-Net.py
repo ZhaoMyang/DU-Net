@@ -7,25 +7,6 @@ import math
 from torch.nn import Softmax
 
 
-# 原始ECA attention
-# class ECA(nn.Module):
-#     def __init__(self, c1, c2, k_size=3):
-#         super(ECA, self).__init__()
-#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-#         self.conv = nn.Conv1d(
-#             1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False
-#         )
-#         self.sigmoid = nn.Sigmoid()
-
-#     def forward(self, x):
-#         y = self.avg_pool(x)
-#         y = self.conv(y.squeeze(-1).transpose(-1, -2)).transpose(-1, -2).unsqueeze(-1)
-#         y = self.sigmoid(y)
-#         return x * y.expand_as(x)
-    
-    
-
-# 空间和通道注意力结合ECA:   output_ECA1
 class BCSA(nn.Module):
     def __init__(self, c1, c2, k_size=3):
         super(BCSA, self).__init__()
@@ -40,17 +21,16 @@ class BCSA(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        # 计算通道注意力权重
+
         y_channel = self.avg_pool_channel(x)
         y_channel = self.conv_channel(y_channel.squeeze(-1).transpose(-1, -2)).transpose(-1, -2).unsqueeze(-1)
         y_channel = self.sigmoid(y_channel)
 
-        # 计算空间注意力权重
+
         y_spatial = self.avg_pool_spatial(x)
         y_spatial = self.conv_spatial(y_spatial.squeeze(-1).transpose(-1, -2)).transpose(-1, -2).unsqueeze(-1)
         y_spatial = self.sigmoid(y_spatial)
 
-        # 将通道注意力权重和空间注意力权重融合
         y = y_channel * y_spatial
 
         return x * y.expand_as(x)
@@ -99,31 +79,31 @@ class UpBlock(nn.Module):
             nn.Conv2d(out_channel + in_channel, out_channel, 3, 1, 1),
             nn.InstanceNorm2d(out_channel),
             nn.ReLU(),
-            BCSA(out_channel, out_channel)  # 添加ECA模块
+            BCSA(out_channel, out_channel) 
         )
 
         self.conv2 = nn.Sequential(
             nn.Conv2d(out_channel, out_channel, 3, 1, 1),
             nn.InstanceNorm2d(out_channel),
             nn.ReLU(),
-            BCSA(out_channel, out_channel)  # 添加ECA模块
+            BCSA(out_channel, out_channel) 
         )
 
         self.conv3 = nn.Sequential(
             nn.Conv2d(out_channel, out_channel, 3, padding=1, bias=False),
             nn.InstanceNorm2d(out_channel),
             nn.ReLU(),
-            BCSA(out_channel, out_channel)  # 添加ECA模块
+            BCSA(out_channel, out_channel)
         )
 
         self.skip = nn.Conv2d(out_channel + in_channel, out_channel, 1, 1, 0)
 
     def forward(self, input, FB_in):
-        out_temp = self.upsample(input)  # 对输入进行上采样
-        out_temp = torch.cat([out_temp, FB_in], dim=1)  # 将上采样后的结果与另一个输入进行拼接
-        out = self.conv1(out_temp) + self.skip(out_temp)  # 将拼接后的结果输入到卷积层中
-        out = self.conv2(out)  # 添加第二个卷积层
-        out = self.conv3(out)  # 添加第三个卷积层
+        out_temp = self.upsample(input) 
+        out_temp = torch.cat([out_temp, FB_in], dim=1) 
+        out = self.conv1(out_temp) + self.skip(out_temp) 
+        out = self.conv2(out)  
+        out = self.conv3(out)  
         return out
 
     
@@ -133,7 +113,7 @@ class EncodingBlock(nn.Module):
     def __init__(self, in_channel=256, out_channel=512):
         super().__init__()
 
-        # 卷积层，包含输入通道和输出通道的卷积核，使用 3x3 的卷积核，填充为 1，步幅为 1
+
         self.conv = nn.Sequential(
                                     nn.Conv2d(in_channel, out_channel,3, 1,1),
                                       # nn.BatchNorm2d(out_channel),
@@ -145,12 +125,12 @@ class EncodingBlock(nn.Module):
                                     nn.ReLU()
                                       )
 
-        self.skip = nn.Conv2d(in_channel,out_channel,1,1,0) # 1x1 卷积层，用于跳跃连接，将输入通道和输出通道调整为一致
+        self.skip = nn.Conv2d(in_channel,out_channel,1,1,0)
         # self.ca_block = CA_Block(out_channel)
     def forward(self, input):
-        out = self.conv(input) + self.skip(input) # 对输入进行卷积操作和跳跃连接
+        out = self.conv(input) + self.skip(input)
         # out = self.ca_block(out)
-        return out # 返回处理后的特征图
+        return out
 
 
 
@@ -341,19 +321,7 @@ class DoubleUNetWithSimSPPF(nn.Module):
         out2 = self.unet2(spp_out, use_sigmoid)
         return out2
         
-# 单一Unet
-# class DoubleUNetWithSimSPPF(nn.Module):
-#     def __init__(self, ngf=16, input_channel=3, output_channel=3):
-#         super(DoubleUNetWithSimSPPF, self).__init__()
 
-#         # Single UNet
-#         self.unet = UNet(ngf, input_channel, output_channel)
-
-#     def forward(self, x, use_sigmoid=True):
-#         x = x.to(self.unet.conv_fin.weight.device)
-#         # Forward pass through the single UNet
-#         out = self.unet(x, use_sigmoid)
-#         return out
 
 
 # Instantiate DoubleUNetWithSimSPPF
