@@ -82,12 +82,6 @@ class UpBlock(nn.Module):
             BCSA(out_channel, out_channel) 
         )
 
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(out_channel, out_channel, 3, 1, 1),
-            nn.InstanceNorm2d(out_channel),
-            nn.ReLU(),
-            BCSA(out_channel, out_channel) 
-        )
 
         self.conv3 = nn.Sequential(
             nn.Conv2d(out_channel, out_channel, 3, padding=1, bias=False),
@@ -115,10 +109,6 @@ class EncodingBlock(nn.Module):
 
 
         self.conv = nn.Sequential(
-                                    nn.Conv2d(in_channel, out_channel,3, 1,1),
-                                      # nn.BatchNorm2d(out_channel),
-                                    nn.InstanceNorm2d(out_channel),
-                                    nn.ReLU(),
 
                                     nn.Conv2d(out_channel, out_channel,3, 1,1),
                                     nn.InstanceNorm2d(out_channel),
@@ -187,15 +177,6 @@ class UNet(nn.Module):
         self.down3 = DownBlock(2 * ngf, 4 * ngf)
 
 
-        self.encoding = EncodingBlock(4 * ngf, 8 * ngf)
-        self.up3 = UpBlock(8 * ngf, 4 * ngf)
-        self.up2 = UpBlock(4 * ngf, 2 * ngf)
-        self.up1 = UpBlock(2 * ngf, ngf)
-
-        self.out = EncodingBlock(2 * ngf, ngf)
-        self.conv_fin = nn.Conv2d(ngf, output_channel, 1, 1, 0)
-        self.sigmoid = nn.Sigmoid()
-
     def forward(self, x, use_sigmoid=True):
         x_init = self.init(x)
         d1, d1_f = self.down1(x_init)
@@ -217,86 +198,11 @@ class UNet(nn.Module):
 
     
     
-# class UNet1(nn.Module):
-#     def __init__(self, ngf=16, input_channel=3, output_channel=3):
-#         super(UNet1, self).__init__()
-
-#         self.init = EncodingBlock(input_channel, ngf)
-#         self.down1 = DownBlock(ngf, ngf)
-#         self.down2 = DownBlock(ngf, 2 * ngf)
-#         self.down3 = DownBlock(2 * ngf, 4 * ngf)
-
-
-#         self.encoding = EncodingBlock(4 * ngf, 8 * ngf)
-#         self.up3 = UpBlock(8 * ngf, 4 * ngf)
-#         self.up2 = UpBlock(4 * ngf, 2 * ngf)
-#         self.up1 = UpBlock(2 * ngf, ngf)
-
-#         self.out = EncodingBlock(2 * ngf, ngf)
-#         self.conv_fin = nn.Conv2d(ngf, output_channel, 1, 1, 0)
-#         # self.sigmoid = nn.Sigmoid()
-
-#     def forward(self, x, use_sigmoid=True):
-#         x_init = self.init(x)
-#         d1, d1_f = self.down1(x_init)
-#         d2, d2_f = self.down2(d1)
-#         d3, d3_f = self.down3(d2)
-
-#         h = self.encoding(d3)
-#         hu3 = self.up3(h, d3_f)
-#         hu2 = self.up2(hu3, d2_f)
-#         hu1 = self.up1(hu2, d1_f)
-
-#         h_out = self.out(torch.cat([hu1, x_init], dim=1))
-#         h_out = self.conv_fin(h_out)
-
-#         # if use_sigmoid:
-#         #     h_out = self.sigmoid(h_out)
-
-#         return h_out
-
-# class UNet2(nn.Module):
-#     def __init__(self, ngf=16, input_channel=3, output_channel=3):
-#         super(UNet2, self).__init__()
-
-#         self.init = EncodingBlock(input_channel, ngf)
-#         self.down1 = DownBlock(ngf, ngf)
-#         self.down2 = DownBlock(ngf, 2 * ngf)
-#         self.down3 = DownBlock(2 * ngf, 4 * ngf)
-
-
-#         self.encoding = EncodingBlock(4 * ngf, 8 * ngf)
-#         self.up3 = UpBlock(8 * ngf, 4 * ngf)
-#         self.up2 = UpBlock(4 * ngf, 2 * ngf)
-#         self.up1 = UpBlock(2 * ngf, ngf)
-
-#         self.out = EncodingBlock(2 * ngf, ngf)
-#         self.conv_fin = nn.Conv2d(ngf, output_channel, 1, 1, 0)
-#         self.sigmoid = nn.Sigmoid()
-
-#     def forward(self, x, use_sigmoid=True):
-#         x_init = self.init(x)
-#         d1, d1_f = self.down1(x_init)
-#         d2, d2_f = self.down2(d1)
-#         d3, d3_f = self.down3(d2)
-
-#         h = self.encoding(d3)
-#         hu3 = self.up3(h, d3_f)
-#         hu2 = self.up2(hu3, d2_f)
-#         hu1 = self.up1(hu2, d1_f)
-
-#         h_out = self.out(torch.cat([hu1, x_init], dim=1))
-#         h_out = self.conv_fin(h_out)
-
-#         if use_sigmoid:
-#             h_out = self.sigmoid(h_out)
-
-#         return h_out
     
 
 class DoubleUNetWithSimSPPF(nn.Module):
     def __init__(self, ngf=16, input_channel=3, output_channel=3):
-        super(DoubleUNetWithSimSPPF, self).__init__()
+
 
         # First UNet
         self.unet1 = UNet(ngf, input_channel, output_channel)
